@@ -129,6 +129,7 @@ ggplot(fam_dist_df, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=category)) +
   theme(legend.position = "none")
 
 
+
 ##which strain has the highest/lowest number of singletons and accessory gene fams? 
 gene_fam_by_strain<-as.data.frame(PIRATE.gene_families[,21:ncol(PIRATE.gene_families)])
 ##make binary (if gene = 1, if not = 0)
@@ -239,7 +240,7 @@ singletons_only_by_strain_matched<- singletons_only_by_strain[rownames(singleton
 
 ##use mapping file to rename the strains to match the way they appear in the tree
 
-#mapping file to map old names to new names 
+#mapping file to map old names to new names + clade annotations
 name_map<-read.delim("namemappingfile_12Oct2020.tab", header = TRUE, sep = "\t", fill = TRUE, strip.white = TRUE)
 
 #accessory_by_strain_matched_w_names<- accessory_by_strain_matched
@@ -422,10 +423,298 @@ theme(
 
 tree_bars_me + geom_tiplab2(size = 1, offset = .03, align = TRUE, linesize = .04, linetype = 1)
 
+#ggsave(file="pan_genome_tree.png",device="png")
 
-ggsave(file="pan_genome_tree.png",device="png")
 
-help(ggsave)
+
+###are there unique gene families (or unique losses) by clade?
+View(accessory_by_strain_matched)
+#count data per family
+
+
+#need to match annotation data to the all_accessory data 
+###modify this:
+##which strain has the highest/lowest number of singletons and accessory gene fams? 
+gene_fam_by_strain_w_anno<-as.data.frame(PIRATE.gene_families[,c(1:4,21:ncol(PIRATE.gene_families))])
+##make binary (if gene = 1, if not = 0)
+#fill in zeros
+gene_fam_by_strain_w_anno_zeros<- sapply(gene_fam_by_strain_w_anno, gsub, pattern = "^\\s*$" , replacement = 0 )
+#fill in ones
+gene_fam_by_strain_w_anno_ones<- as.data.frame(replace(gene_fam_by_strain_w_anno_zeros[,5:ncol(gene_fam_by_strain_w_anno_zeros)], gene_fam_by_strain_zeros!="0", 1))
+#change to numeric
+gene_fam_by_strain_w_anno_ones_num <- mutate_all(gene_fam_by_strain_w_anno_ones, function(x) as.numeric(as.character(x)))
+#bind annotations
+gene_fam_by_strain_w_anno_ones_num2<- cbind(gene_fam_by_strain_w_anno_zeros[,1:4], gene_fam_by_strain_w_anno_ones_num)
+
+
+#subset to remove core genes and singletons 
+#remove core
+all_accessory_anno<- gene_fam_by_strain_w_anno_ones_num2[rowSums(gene_fam_by_strain_w_anno_ones_num2[,5:ncol(gene_fam_by_strain_w_anno_ones_num2)]) != 308,]
+#remove singeltons
+all_accessory_anno_no_sing<- all_accessory_anno[rowSums(all_accessory_anno[,5:ncol(all_accessory_anno)]) != 1,]
+dim(all_accessory_anno_no_sing)
+
+#split list of strain names by clade (as factors)
+accessory_by_strain_matched_factor_list<- as.list(accessory_by_strain_matched$strain, accessory_by_strain_matched$clade)
+accessory_by_strain_matched_list <- setNames(accessory_by_strain_matched$clade, accessory_by_strain_matched$strain)
+#accessory_by_strain_matched_list_factor<- as.factor(accessory_by_strain_matched_list)
+
+#split the count data frame by the factor list
+#accessory_by_strain_matched_list_factor[accessory_by_strain_matched_list_factor == "clade1"]
+clade1_names<- accessory_by_strain_matched_list[accessory_by_strain_matched_list == "clade1"]
+clade1<- cbind(all_accessory_anno_no_sing[,1:4], all_accessory_anno_no_sing[,colnames(all_accessory_anno_no_sing) %in% names(clade1_names)])
+
+clade2_names<- accessory_by_strain_matched_list[accessory_by_strain_matched_list == "clade2"]
+clade2<- cbind(all_accessory_anno_no_sing[,1:4], all_accessory_anno_no_sing[,colnames(all_accessory_anno_no_sing) %in% names(clade2_names)])
+
+clade3_names<- accessory_by_strain_matched_list[accessory_by_strain_matched_list == "clade3"]
+clade3<- cbind(all_accessory_anno_no_sing[,1:4], all_accessory_anno_no_sing[,colnames(all_accessory_anno_no_sing) %in% names(clade3_names)])
+
+clade4_names<- accessory_by_strain_matched_list[accessory_by_strain_matched_list == "clade4"]
+clade4<- cbind(all_accessory_anno_no_sing[,1:4], all_accessory_anno_no_sing[,colnames(all_accessory_anno_no_sing) %in% names(clade4_names)])
+
+clade5_names<- accessory_by_strain_matched_list[accessory_by_strain_matched_list == "clade5"]
+clade5<- cbind(all_accessory_anno_no_sing[,1:4], all_accessory_anno_no_sing[,colnames(all_accessory_anno_no_sing) %in% names(clade5_names)])
+
+clade6_names<- accessory_by_strain_matched_list[accessory_by_strain_matched_list == "clade6"]
+clade6<- cbind(all_accessory_anno_no_sing[,1:4], all_accessory_anno_no_sing[,colnames(all_accessory_anno_no_sing) %in% names(clade6_names)])
+
+clade7_names<- accessory_by_strain_matched_list[accessory_by_strain_matched_list == "clade7"]
+clade7<- cbind(all_accessory_anno_no_sing[,1:4], all_accessory_anno_no_sing[,colnames(all_accessory_anno_no_sing) %in% names(clade7_names)])
+
+clade8_names<- accessory_by_strain_matched_list[accessory_by_strain_matched_list == "clade8"]
+clade8<- cbind(all_accessory_anno_no_sing[,1:4], all_accessory_anno_no_sing[,colnames(all_accessory_anno_no_sing) %in% names(clade8_names)])
+
+#are there gene families that are exclusive to clade 1?
+#clade1_rowsums<- clade1[rowSums(clade1[,5:ncol(clade1)]) >0,]
+
+#calculate rowsums
+
+#QC make sure they match 
+#length(names(clade7)) -5 
+#length(clade7_names)  #yep
+
+clade1$totals<-  rowSums(clade1[,5:ncol(clade1)])
+clade2$totals<-  rowSums(clade2[,5:ncol(clade2)])
+clade3$totals<-  rowSums(clade3[,5:ncol(clade3)])
+clade4$totals<-  rowSums(clade4[,5:ncol(clade4)])
+clade5$totals<-  rowSums(clade5[,5:ncol(clade5)])
+clade6$totals<-  rowSums(clade6[,5:ncol(clade6)])
+clade7$totals<-  rowSums(clade7[,5:ncol(clade7)])
+#clade8$totals<-  sum(clade8[,5:ncol(clade8)]) #because this is really only one... 
+
+#get fams exclusive to clade1
+exclusive_to_clade1<- clade1[(clade1$totals > 0) & 
+                               (clade2$totals == 0) &
+                               (clade3$totals == 0) &
+                               (clade4$totals == 0) &
+                               (clade5$totals == 0) &
+                               (clade6$totals == 0) &
+                               (clade7$totals == 0),]
+
+dim(exclusive_to_clade1) 
+#there are 261 accessory gene fams exclusive to clade 1
+length(clade1_names) #there are 96 strains in clade 1
+sort(exclusive_to_clade1$totals) # top hit is distributed in 46 of the 96 isolates in clade1
+length(clade1_names)*.33 #none in over half the isolates in clade 1
+#get all present in more than 1/3 of the isolates 
+exclusive_to_clade1_of_note<- exclusive_to_clade1[exclusive_to_clade1$totals > length(clade1_names)*.33,]
+dim(exclusive_to_clade1_of_note)
+#there are 5 of note- all "hypothetical protein 
+
+#spot check
+#test<-exclusive_to_clade1[exclusive_to_clade1$totals == 46,]
+#test$gene_family #g010930
+#test2<- clade2[clade2$gene_family == "g010930",]
+
+
+
+
+#exclusive to clade2
+exclusive_to_clade2<- clade2[(clade2$totals > 0) & 
+                               (clade1$totals == 0) &
+                               (clade3$totals == 0) &
+                               (clade4$totals == 0) &
+                               (clade5$totals == 0) &
+                               (clade6$totals == 0) &
+                               (clade7$totals == 0),]
+
+dim(exclusive_to_clade2) 
+length(clade2_names) #there are 40 isolatres in clade 2
+sort(exclusive_to_clade2$totals)
+#there are 25 accessory gene fams exclusive to clade2, but not ver wide spread
+exclusive_to_clade2_of_note<- exclusive_to_clade2[exclusive_to_clade2$totals > length(clade2_names)*.33,]
+dim(exclusive_to_clade2_of_note)
+#none of note
+
+
+#exclusive to clade3
+exclusive_to_clade3<- clade3[(clade3$totals > 0) & 
+                               (clade1$totals == 0) &
+                               (clade2$totals == 0) &
+                               (clade4$totals == 0) &
+                               (clade5$totals == 0) &
+                               (clade6$totals == 0) &
+                               (clade7$totals == 0),]
+
+dim(exclusive_to_clade3) 
+length(clade3_names)
+sort(exclusive_to_clade3$totals)
+#there are 19 accessory gene fams exclusive to clade3, but not ver wide spread
+exclusive_to_clade3_of_note<- exclusive_to_clade3[exclusive_to_clade3$totals > length(clade3_names)*.33,]
+dim(exclusive_to_clade3_of_note)
+#none of note
+
+
+
+#exclusive to clade4
+exclusive_to_clade4<- clade4[(clade4$totals > 0) & 
+                               (clade1$totals == 0) &
+                               (clade2$totals == 0) &
+                               (clade3$totals == 0) &
+                               (clade5$totals == 0) &
+                               (clade6$totals == 0) &
+                               (clade7$totals == 0),]
+
+dim(exclusive_to_clade4) 
+length(clade4_names)
+sort(exclusive_to_clade4$totals)
+#there are 7 accessory gene fams exclusive to clade4, but not ver wide spread
+exclusive_to_clade4_of_note<- exclusive_to_clade4[exclusive_to_clade4$totals > length(clade4_names)*.33,]
+dim(exclusive_to_clade4_of_note)
+#none of note
+
+
+#exclusive to clade5
+exclusive_to_clade5<- clade5[(clade5$totals > 0) & 
+                               (clade1$totals == 0) &
+                               (clade2$totals == 0) &
+                               (clade3$totals == 0) &
+                               (clade4$totals == 0) &
+                               (clade6$totals == 0) &
+                               (clade7$totals == 0),]
+
+dim(exclusive_to_clade5) 
+length(clade5_names)
+sort(exclusive_to_clade5$totals)
+#there are 165 accessory gene fams exclusive to clade2, but not ver wide spread
+exclusive_to_clade5_of_note<- exclusive_to_clade5[exclusive_to_clade5$totals > length(clade5_names)*.33,]
+dim(exclusive_to_clade5_of_note)
+#none of note
+
+
+#exclusive to clade6
+exclusive_to_clade6<- clade6[(clade6$totals > 0) & 
+                               (clade1$totals == 0) &
+                               (clade2$totals == 0) &
+                               (clade3$totals == 0) &
+                               (clade4$totals == 0) &
+                               (clade5$totals == 0) &
+                               (clade7$totals == 0),]
+
+dim(exclusive_to_clade6) 
+length(clade6_names)
+sort(exclusive_to_clade6$totals)
+#there are 69 accessory gene fams exclusive to clade2, but not ver wide spread
+length(clade6_names)*.5 #none in more than half
+exclusive_to_clade6_of_note<- exclusive_to_clade6[exclusive_to_clade6$totals > length(clade6_names)*.33,]
+dim(exclusive_to_clade6_of_note)
+#one of note - a hypothetical protein 
+
+#exclusive to clade7
+exclusive_to_clade7<- clade7[(clade7$totals > 0) & 
+                               (clade1$totals == 0) &
+                               (clade2$totals == 0) &
+                               (clade3$totals == 0) &
+                               (clade4$totals == 0) &
+                               (clade5$totals == 0) &
+                               (clade6$totals == 0),]
+
+dim(exclusive_to_clade7) 
+length(clade7_names)
+sort(exclusive_to_clade7$totals)
+#there are 3 accessory gene fams exclusive to clade2, but not very wide spread
+exclusive_to_clade7_of_note<- exclusive_to_clade7[exclusive_to_clade7$totals > length(clade7_names)*.33,]
+dim(exclusive_to_clade7_of_note)
+#2 of note - both "hypothetical protein"
+
+
+#graph the fams of interest onto the tree 
+#clade 1: (5) exclusive_to_clade1_of_note
+#clade 6: (1) exclusive_to_clade6_of_note
+#clade 7: (2) exclusive_to_clade7_of_note
+
+#tree of clade1 w/ presence absence for the fams of interest
+
+
+clade1_names
+
+
+
+##subset the clade-trees from the larger tree
+#fixnames calde1
+clade1_names_fixed <- name_map$name_pop_genome[match(names(clade1_names), name_map$name_Pan_genome)]
+#subset tree to just clade1
+clade1_tree<- keep.tip(tree_grA_me, clade1_names_fixed)
+#fixnames calde6
+clade6_names_fixed <- name_map$name_pop_genome[match(names(clade6_names), name_map$name_Pan_genome)]
+#subset tree to just clade1
+clade6_tree<- keep.tip(tree_grA_me, clade6_names_fixed)
+#fixnames calde7
+clade7_names_fixed <- name_map$name_pop_genome[match(names(clade7_names), name_map$name_Pan_genome)]
+#subset tree to just clade1
+clade7_tree<- keep.tip(tree_grA_me, clade7_names_fixed)
+
+
+#clade 1 plot
+clade1_tree_plot <- 
+  ggtree(tr = clade1_tree, 
+         # color by group attribute, check str(tree_grA_me)
+         #mapping = aes(color = group), 
+         layout  = 'circular', 
+         branch.length = "none") + 
+  geom_treescale(x=3, y=NULL, color = NA) +
+  scale_color_manual(name = 'Clade', values = my_cols_me) + 
+  theme(legend.title=element_text(size=9), # The title of legend 
+        legend.text=element_text(size=7)) +
+  guides(color = guide_legend(override.aes = list(size = 4))) 
+
+
+clade1_tree_plot + geom_tiplab(size = 1, align = TRUE, linesize = .25, linetype = 0)
+
+##plot presence / absence of gene fams 
+
+#mutate cols into rows
+row.names(exclusive_to_clade1_of_note)<- exclusive_to_clade1_of_note$gene_family
+clade_1_binary<- data.frame(t(exclusive_to_clade1_of_note[,5:(ncol(exclusive_to_clade1_of_note) -1)]))
+#turn into presence absence 
+clade_1_binary_presence<- data.frame(sapply(clade_1_binary, gsub, pattern = "1", replacement = "present"))
+clade_1_binary_presence_absence<- sapply(clade_1_binary_presence, gsub, pattern = "0", replacement = "absent")
+View(clade_1_binary_presence_absence)
+row.names(clade_1_binary_presence_absence) <- row.names(clade_1_binary)
+#fix rownames
+clade_1_binary_presence_absence_fixed <- name_map$name_pop_genome[match(rownames(clade_1_binary_presence_absence), name_map$name_Pan_genome)]
+row.names(clade_1_binary_presence_absence) <- clade_1_binary_presence_absence_fixed
+
+
+
+
+
+
+
+
+
+
+#what is "traits" here?
+clade1_tree_plot2 <-  gheatmap(clade1_tree_plot, clade_1_binary_presence_absence, offset=0.2, width=0.2, low="white", high="black", colnames_position = "top", font.size=2, color="black") +
+  scale_fill_manual(values=c("white", "black"))
+
+clade1_tree_plot2
+clade1_tree_plot2 + geom_tiplab(size = 1, align = TRUE, linesize = .25, offset = 15, linetype = 0)
+
+#add plot title Clade 1 specific families 
+
+
 
 
 ###where do the genes fall on each chr?
