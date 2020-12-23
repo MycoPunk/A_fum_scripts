@@ -1,0 +1,60 @@
+###forBLASp###
+module load ncbi-blast/2.2.30+
+
+#how many proteins are in the AF293 
+grep ">" Aspergillus_fumigatus_AF293.proteins.fa | wc -l
+#10,167
+
+#how many protein fams are in the PIRATE output? 
+grep ">" representative_sequences.faa | wc -l
+#15,623
+
+#how many of the AF293 proteins have a match in the PIRATE fams?
+#make blast database from the PIRATE result aa file
+makeblastdb -dbtype prot -in representative_sequences.faa
+
+blastp -query Aspergillus_fumigatus_AF293.proteins.fa -db representative_sequences.faa -out matches_AF293_to_PIRATE -evalue 1e-5 -max_target_seqs 1 -outfmt 7
+
+
+#how many results were returned? (this should be the same as the number of aa queried = 10,167)
+grep "hits found" matches_AF293_to_PIRATE | wc -l
+#10,167 - ok good. 
+
+#how many seqs in AF293 did NOT have a match in the PIRATE gene fams at -evalue 1e-5? 
+grep " 0 hits found" matches_AF293_to_PIRATE | wc -l
+#639
+
+
+####################
+#this is the actual script:
+#!/usr/bin/bash 
+#SBATCH --mem=64G -p batch --nodes 1 --ntasks 2 --out blastp.log
+
+module load ncbi-blast/2.2.30+
+
+makeblastdb -dbtype nucl -in representative_sequences.ffn 
+
+blastn -query Aspergillus_fumigatus_AF293.cds-transcripts.fa -db representative_sequences.ffn -out matches_AF293_to_PIRATE_necl -evalue 1e-5 -max_target_seqs 1 -outfmt 7
+####################
+
+###forBLASTn interactive###
+#how many seqs are in AF293 
+grep ">"  Aspergillus_fumigatus_AF293.cds-transcripts.fa | wc -l
+#10,167
+
+#how many protein fams are in the PIRATE output? 
+grep ">" representative_sequences.ffn | wc -l
+#15,623
+
+#how many of the AF293 seqs have a match in the PIRATE fams?
+makeblastdb -dbtype nucl -in representative_sequences.ffn 
+
+blastn -query Aspergillus_fumigatus_AF293.cds-transcripts.fa -db representative_sequences.ffn -out matches_AF293_to_PIRATE_necl -evalue 1e-5 -max_target_seqs 1 -outfmt 7
+
+#how many results were returned? (this should be the same as the number of aa queried = 10,167)
+grep "hits found" matches_AF293_to_PIRATE_necl | wc -l
+#10,167 - ok good. 
+
+#how many seqs in AF293 did NOT have a match in the PIRATE gene fams at -evalue 1e-5? 
+grep " 0 hits found" matches_AF293_to_PIRATE_necl | wc -l
+#8
