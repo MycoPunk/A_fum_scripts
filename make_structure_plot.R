@@ -87,3 +87,58 @@ p1 <- plotQ(alignK(sortQ(only_admixed)[2]),returnplot=T,exportplot=F,quiet=T,bas
             sortind="all", sharedindlab = F, panelspacer=0.4,
             barbordersize=0)
 grid.arrange(p1$plot[[1]])
+                      
+                     
+#make plot from chooseK.py for Fig S1
+choose_k <- read.csv("choose_k_results.csv",header=FALSE, row.names = 1, stringsAsFactors=F)
+choose_k_t<- data.frame(t(choose_k))
+
+#make long
+choose_k_long <- choose_k_t %>% pivot_longer(cols = 2:30, names_to = "Run_n", values_to = "ML")
+
+#plot
+p<- ggplot(data = choose_k_long, mapping = aes(x = itteration, y = ML, group = Run_n, color = Run_n)) + 
+  geom_line(color="#D4494E", size=1, alpha=.2, linetype=1) +
+  theme_minimal() +
+  xlab("K") + ylab("Marginal Likelihood")+
+  scale_x_discrete(limits=c("1","2","3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"))
+p
+ggsave(plot = p, width = 6, height = 2, dpi = 300, filename = "Marginal_likelyhood.svg")
+
+
+##Run stats on what point is no longer a significant increase in K 
+#create differences df - a dataframe of differences between that col n (k) and col n - 1 (k - 1)
+K_diffs<-  data.frame(t(apply(choose_k,1,diff)))
+K_diffs_clean<- K_diffs[-1,]
+
+#rename confusing col headers
+colnames(K_diffs_clean)<- seq(1:14)
+
+#make long
+choose_k_long_diffs <- K_diffs_clean %>% pivot_longer(cols = 1:14, names_to = "K", values_to = "ML")
+
+#run anova
+choose_k_long
+aov(K_diffs_clean)
+
+#change to factor
+choose_k_long_diffs$K = as.factor(choose_k_long_diffs$K)
+#run linear model and anova
+k_diffs_lm <- lm(ML ~ K, data = choose_k_long_diffs)
+k_diffs_anova<- anova(k_diffs_lm)
+summary(k_diffs_anova)
+
+#posthoc test
+library(multcomp)
+# running glht()
+post.hoc <- glht(k_diffs_lm, linfct = mcp(K = 'Tukey'))
+
+# displaying the result table with summary()
+summary(post.hoc, test = adjusted("bonferroni"))
+#does not increase significantly after k = 4
+
+#difference between K vals
+mean(K_diffs_clean[,1])
+mean(K_diffs_clean[,2])
+mean(K_diffs_clean[,3])
+mean(K_diffs_clean[,4])
